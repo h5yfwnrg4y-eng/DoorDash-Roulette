@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#050505">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="DoorDash Roulette">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<meta name="description" content="DoorDash Roulette — The ultimate food decision game. Spin the wheels. Lock in the order. No backing out.">
+<title>DoorDash Roulette</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="DoorDash Roulette">
+<style>
+  :root, [data-theme="classic"] {
+    --bg: #050505;
+    --card: #0c0c0c;
+    --card-border: #3a1010;
+    --accent: #e11919;
+    --accent-bright: #ff2a2a;
+    --accent-glow: #ff000066;
+    --accent-dim: #8b1010;
+    --hub-border: #e11919;
+    --text: #ffffff;
+    --muted: #888;
+    --kicker: #ff5555;
+    --scan: rgba(255,0,0,0.012);
+  }
+  [data-theme="halloween"] {
+    --bg: #0a0608;
+    --card: #120a0e;
+    --card-border: #4a2010;
+    --accent: #ff6b00;
+    --accent-bright: #ff9500;
+    --accent-glow: #ff6b0066;
+    --accent-dim: #8b4510;
+    --hub-border: #9b59b6;
+    --text: #fff5e6;
+    --muted: #a08070;
+    --kicker: #ff8c42;
+    --scan: rgba(255,100,0,0.02);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* TV scanlines + vignette */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 2px, var(--scan) 2px 3px),
+      radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.5) 100%);
+  }
+
+  .app {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 12px 14px 55px;
+    position: relative;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .logo {
+    width: 120px;
+    height: auto;
+    filter: drop-shadow(0 0 16px var(--accent-glow));
+    transition: transform 0.3s;
+  }
+  .logo:hover { transform: scale(1.03); }
+
+  .nav { display: flex; gap: 8px; align-items: center; }
+
+  .nav button {
+    border: 1px solid #5a1515;
+    background: #111;
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px 15px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav button:hover, 
+  .nav button.active {
+    background: var(--accent);
+    border-color: var(--accent-bright);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+  
+  
+
+  /* Hero */
+  .hero { text-align: center; margin: 2px 0 18px; }
+  .kicker {
+    font-size: 10px;
+    letter-spacing: 3.5px;
+    color: var(--kicker);
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: clamp(24px, 6vw, 48px);
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    margin: 2px 0 4px;
+    text-shadow: 0 0 28px var(--accent-glow);
+  }
+  .sub { color: #999; font-size: 13px; }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .card {
+    background: linear-gradient(165deg, #141414 0%, #080808 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 14px 10px 16px;
+    box-shadow: 0 14px 40px #000000bb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+  }
+
+  .card h2 {
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    color: var(--kicker);
+    margin-bottom: 10px;
+    font-weight: 800;
+    align-self: flex-start;
+    padding-left: 4px;
+  }
+
+  /* ── Wheel ── */
+  .wheel-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto 8px;
+  }
+
+  .pointer {
+    position: absolute;
+    z-index: 25;
+    left: 50%;
+    top: -8px;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 24px solid #fff;
+    filter: drop-shadow(0 0 10px var(--accent));
+  }
+
+  .wheel {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 6px solid #1c1c1c;
+    box-shadow:
+      0 0 0 3px var(--accent-dim),
+      0 0 30px #ff000033,
+      inset 0 0 50px #00000099;
+    transition: transform 4.4s cubic-bezier(0.1, 0.7, 0.05, 1);
+    background: #111;
+  }
+
+  
+  .hub {
+    position: absolute;
+    z-index: 15;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 26%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #222, #050505 70%);
+    border: 3px solid var(--hub-border);
+    display: grid;
+    place-items: center;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    color: var(--kicker);
+    box-shadow: 0 0 20px var(--accent-glow), inset 0 0 14px #000;
+  }
+
+  /* Result */
+  .result {
+    width: 100%;
+    min-height: 56px;
+    margin: 6px 0 10px;
+    border: 1px solid #321010;
+    border-radius: 12px;
+    background: #060606;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 13.5px;
+    font-weight: 800;
+    padding: 8px 6px;
+    transition: all 0.3s;
+  }
+  .result.highlight {
+    border-color: var(--accent);
+    box-shadow: 0 0 18px var(--accent-glow);
+    animation: pulse-result 0.55s ease;
+  }
+  @keyframes pulse-result {
+    0% { transform: scale(1); }
+    45% { transform: scale(1.045); }
+    100% { transform: scale(1); }
+  }
+
+  .rarity {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 1.1px;
+    margin-top: 3px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .rarity.common { background: #374151; color: #d1d5db; }
+  .rarity.uncommon { background: #14532d; color: #86efac; }
+  .rarity.rare { background: #1e3a5f; color: #93c5fd; }
+  .rarity.legendary { background: #78350f; color: #fcd34d; }
+  .rarity.mythical { background: #4c1d95; color: #d8b4fe; }
+
+  /* Buttons */
+  .action {
+    border: 1px solid #5a1515;
+    background: #111;
+    color: #fff;
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-weight: 800;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .action:hover:not(:disabled) { border-color: var(--accent); background: #1a0808; }
+  .action:disabled { opacity: 0.4; cursor: not-allowed; }
+  .action.primary {
+    background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+    border-color: var(--kicker);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .action.primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+    box-shadow: 0 0 24px var(--accent-glow);
+  }
+
+  .status {
+    margin: 18px 0 12px;
+    text-align: center;
+    background: #0a0a0a;
+    border: 1px solid #321010;
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: #bbb;
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  .status strong { color: var(--accent-bright); }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .controls .action { width: auto; min-width: 140px; }
+
+  /* History */
+  #history { display: none; margin-top: 6px; }
+  #history h2 {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--kicker);
+    margin-bottom: 12px;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-card {
+    background: #0c0c0c;
+    border: 1px solid #2a1010;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 68px 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .history-card:hover { border-color: #5a2020; }
+  .history-num { font-size: 17px; font-weight: 900; color: var(--accent-bright); }
+  .history-num span { display: block; font-size: 10px; color: #666; font-weight: 600; }
+  .history-details { display: flex; flex-wrap: wrap; gap: 5px 12px; font-size: 12.5px; }
+  .history-details b { color: #fff; }
+  .history-details .tag { font-size: 10px; color: #777; }
+  .history-del {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1px solid #4a1515;
+    background: #150808;
+    color: var(--accent-bright);
+    font-size: 15px;
+    cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .history-del:hover { background: #2a1010; }
+  .empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #555;
+    background: #0a0a0a;
+    border-radius: 14px;
+    border: 1px dashed #2a2a2a;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translate(-50%, 28px);
+    opacity: 0;
+    pointer-events: none;
+    background: #fff;
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 13px;
+    transition: all 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+    z-index: 50;
+    box-shadow: 0 8px 28px #00000099;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  #confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 40;
+  }
+
+  /* Overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+  .overlay-card {
+    background: linear-gradient(165deg, #1a0a0a, #080404);
+    border: 2px solid var(--accent);
+    border-radius: 20px;
+    padding: 28px 22px;
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 60px var(--accent-glow);
+    transform: scale(0.92);
+    transition: transform 0.3s;
+  }
+  .overlay.show .overlay-card { transform: scale(1); }
+  .overlay-card h3 {
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--kicker);
+    margin-bottom: 16px;
+  }
+  .overlay-result { margin: 10px 0; font-size: 17px; font-weight: 900; }
+  .overlay-result small { display: block; font-size: 10px; color: #777; margin-top: 2px; }
+  .overlay-close { margin-top: 18px; width: auto; min-width: 120px; }
+
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; max-width: 340px; margin: 0 auto; }
+    .logo { width: 95px; }
+    .wheel-wrap { max-width: 280px; }
+    
+    #locationWheel 
+  }
+  @media (max-width: 400px) {
+    .controls .action { min-width: 120px; font-size: 12px; }
+  }
+
+  .theme-btn, .sound-btn {
+    border: 1px solid var(--card-border);
+    background: #111;
+    color: var(--text);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .theme-btn:hover, .sound-btn:hover {
+    border-color: var(--accent);
+    background: #1a1008;
+  }
+  .sound-btn.on {
+    border-color: var(--accent-bright);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  [data-theme="halloween"] .logo {
+    filter: drop-shadow(0 0 16px #ff6b00aa) hue-rotate(-15deg);
+  }
+  [data-theme="halloween"] .pointer {
+    border-top-color: #ffb347;
+    filter: drop-shadow(0 0 10px #ff6b00);
+  }
+  [data-theme="halloween"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(155,89,182,0.08), transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(255,107,0,0.06), transparent 45%);
+  }
+
+
+  .share-box { margin-top: 16px; width: 100%; }
+  .share-input {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    color: var(--text);
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .share-input:focus { border-color: var(--accent); }
+  .share-input::placeholder { color: #666; font-weight: 500; }
+  .share-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .share-actions .action { width: auto; min-width: 120px; flex: 1; }
+
+
+  .photo-pick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    margin-bottom: 10px;
+    border: 1px dashed var(--card-border);
+    border-radius: 12px;
+    background: #0a0a0a;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .photo-pick:hover, .photo-pick.has-photo {
+    border-color: var(--accent);
+    color: var(--accent-bright);
+    border-style: solid;
+  }
+  .photo-pick.has-photo {
+    background: color-mix(in srgb, var(--accent) 12%, #0a0a0a);
+  }
+
+
+  /* Intro */
+  #intro {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: #050505;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 24px;
+  }
+  #intro.hide { display: none; }
+  .intro-logo {
+    width: min(72vw, 320px);
+    height: auto;
+    filter: drop-shadow(0 0 24px var(--accent-glow));
+    animation: logoPulse 3.4s ease-in-out infinite;
+  }
+  @keyframes logoPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  #introPlay {
+    width: auto;
+    min-width: 180px;
+    font-size: 18px;
+    padding: 14px 28px;
+  }
+
+  /* Live game */
+  #liveGame {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background: var(--bg);
+    overflow: auto;
+    padding: 22px 16px 40px;
+  }
+  #liveGame.show { display: block; }
+  .live-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .live-kicker {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--kicker);
+    font-weight: 900;
+    margin-bottom: 8px;
+  }
+  .stopwatch {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(42px, 14vw, 64px);
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin: 10px 0 22px;
+    text-shadow: 0 0 24px var(--accent-glow);
+  }
+  .live-stat {
+    background: linear-gradient(165deg, #141414, #080808);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px 12px;
+    margin-bottom: 10px;
+    text-align: left;
+  }
+  .live-stat small {
+    display: block;
+    color: var(--kicker);
+    font-size: 10px;
+    letter-spacing: 2px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .live-stat b { font-size: 18px; }
+
+  /* Popup */
+  #popup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(0,0,0,0.88);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #popup.show { display: flex; }
+  .popup-card {
+    width: min(420px, 92vw);
+    background: linear-gradient(165deg, #1a0a0a, #080404);
+    border: 2px solid var(--accent);
+    border-radius: 20px;
+    padding: 28px 20px;
+    text-align: center;
+    box-shadow: 0 0 50px var(--accent-glow);
+    animation: pulse-result 0.45s ease;
+  }
+  .popup-card h3 {
+    color: var(--accent-bright);
+    letter-spacing: 3px;
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+  .popup-action {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.2;
+    margin: 10px 0 22px;
+  }
+
+  /* Summary */
+  #summary {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 75;
+    background: var(--bg);
+    overflow: auto;
+    padding: 22px 16px 40px;
+  }
+  #summary.show { display: block; }
+  .summary-wrap { max-width: 420px; margin: 0 auto; text-align: center; }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #0a0a0a;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 14px 0;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .toggle-row input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+
+  .feed-card {
+    background: #0c0c0c;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    text-align: left;
+  }
+  .feed-card .meta { color: #888; font-size: 11px; margin-bottom: 8px; }
+  .feed-card h3 { font-size: 16px; margin: 0 0 8px; }
+  .feed-card img.feed-photo {
+    width: 100%;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin: 8px 0;
+  }
+  .reacts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .reacts button {
+    background: #151515;
+    border: 1px solid var(--card-border);
+    color: #fff;
+    border-radius: 20px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #feed { display: none; }
+  #feed h2 {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--kicker);
+    margin-bottom: 8px;
+  }
+
+
+  .stopwatch.danger { color: #ff2a2a; text-shadow: 0 0 24px #ff000088; }
+  .intensity-box { margin: 12px 0; display: none; text-align: left; }
+  .intensity-box.show { display: block; }
+  .intensity-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; font-size: 22px; margin: 8px 0 4px;
+  }
+  #intensitySlider { width: 100%; accent-color: var(--accent); }
+  .intensity-rand {
+    margin-top: 8px; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pick-row { margin: 8px 0; text-align: left; }
+  .pick-row select {
+    width: 100%; margin-top: 4px; padding: 10px;
+    background: #111; color: #fff; border: 1px solid var(--card-border);
+    border-radius: 10px; font-weight: 700;
+  }
+  .outcome-row { display: flex; gap: 8px; margin: 12px 0; }
+  .outcome-row button { flex: 1; }
+  .outcome-row button.picked {
+    background: var(--accent); border-color: var(--accent-bright);
+  }
+  .recap {
+    background: #0a0a0a; border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 14px; margin: 12px 0;
+    font-size: 14px; line-height: 1.45; text-align: left;
+  }
+
+</style>
+</head>
+<body>
+<div id="intro">
+  <img class="intro-logo" id="introLogo" alt="DoorDash Roulette" src="logo.png">
+  <button class="action primary" id="introPlay">PLAY</button>
+</div>
+
+<div id="liveGame">
+  <div class="live-wrap">
+    <div class="live-kicker">GAME IN PROGRESS</div>
+    <div class="stopwatch" id="stopwatch">00:00</div>
+    <div class="live-stat"><small>LOCATION</small><b id="liveLoc">—</b></div>
+    <div class="live-stat"><small>GAME MODE</small><b id="liveMode">—</b></div>
+    <div class="live-stat"><small>EXTRAS</small><b id="liveExtra">—</b></div>
+    <div class="live-stat" id="liveMixStat" style="display:none"><small>MIXEROO</small><b id="liveMix">—</b></div>
+    <div class="controls" style="margin-top:18px">
+      <button class="action primary" id="endGameBtn">END GAME</button>
+    </div>
+  </div>
+</div>
+
+<div id="popup">
+  <div class="popup-card">
+    <h3>POP UP 🚨</h3>
+    <div class="popup-action" id="popupText">—</div>
+    <button class="action primary" id="popupDone">DONE</button>
+  </div>
+</div>
+
+<div id="summary">
+  <div class="summary-wrap">
+    <div class="live-kicker">GAME SUMMARY</div>
+    <h1 style="font-size:28px;margin:6px 0 14px">FINISHED</h1>
+    <div class="stopwatch" id="sumTime">00:00</div>
+    <div class="live-stat"><small>LOCATION</small><b id="sumLoc">—</b></div>
+    <div class="live-stat"><small>GAME MODE</small><b id="sumMode">—</b></div>
+    <div class="live-stat"><small>EXTRAS</small><b id="sumExtra">—</b></div>
+    <div class="live-stat" id="sumMixStat" style="display:none"><small>MIXEROO</small><b id="sumMix">—</b></div>
+    <div class="recap" id="recapText"></div>
+    <div class="outcome-row">
+      <button class="action" id="survivedBtn">SURVIVED</button>
+      <button class="action" id="bustedBtn">GOT BUSTED</button>
+    </div>
+    <div class="share-box" id="shareBox">
+      <label class="photo-pick" id="photoPickLabel">
+        <input type="file" id="sharePhoto" accept="image/*" capture="environment" hidden>
+        <span id="photoPickText">📷 ADD PHOTO BACKGROUND</span>
+      </label>
+      <input type="text" id="shareCaption" class="share-input" placeholder="Add a caption (optional)..." maxlength="80">
+      <div class="share-actions">
+        <button class="action primary" id="shareBtn">📤 SHARE CARD</button>
+        <button class="action" id="summaryDone">DONE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="mainApp">
+  <header>
+    <img class="logo" id="logoImg" alt="DoorDash Roulette" width="120" src="logo.png">
+    <div class="nav">
+      <button class="theme-btn" id="themeBtn" title="Toggle Halloween theme">🎃</button>
+      <button id="playBtn" class="active">PLAY</button>
+      <button id="historyBtn">HISTORY</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="kicker">THE FOOD DECISION GAME</div>
+    <h1>DOORDASH ROULETTE</h1>
+    <p class="sub">Three wheels. One order. No backing out.</p>
+  </section>
+
+  <section id="play">
+    <div class="grid">
+      <div class="card">
+        <h2>01 · LOCATION</h2>
+        <div class="wheel-wrap">
+          <div class="pointer"></div>
+          <div class="wheel" id="locationWheel"></div>
+          <div class="hub">SPIN</div>
+        </div>
+        <div class="result" id="locationResult">READY</div>
+        <button class="action primary spin" data-type="location">SPIN LOCATION</button>
+      </div>
+
+      <div class="card">
+        <h2>02 · GAME MODE</h2>
+        <div class="wheel-wrap">
+          <div class="pointer"></div>
+          <div class="wheel" id="modeWheel"></div>
+          <div class="hub">SPIN</div>
+        </div>
+        <div class="result" id="modeResult">READY</div>
+        <button class="action primary spin" data-type="mode">SPIN GAME MODE</button>
+      </div>
+
+      <div class="card">
+        <h2>03 · EXTRAS</h2>
+        <div class="wheel-wrap">
+          <div class="pointer"></div>
+          <div class="wheel" id="extraWheel"></div>
+          <div class="hub">SPIN</div>
+        </div>
+        <div class="result" id="extraResult">READY</div>
+        <button class="action primary spin" data-type="extra">SPIN EXTRAS</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">Spin all three wheels to lock in your challenge.</div>
+    <div class="controls">
+      <button class="action primary" id="spinAll">🎬 SPIN ALL 3</button>
+      <button class="action" id="newGame">NEW GAME</button>
+    </div>
+  </section>
+
+  <section id="history">
+    <h2>PREVIOUS GAMES</h2>
+    <div class="history-list" id="historyList"></div>
+    <div class="controls" style="margin-top:16px">
+      <button class="action" id="clearHistory">CLEAR HISTORY</button>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<canvas id="confetti"></canvas>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <h3>🔒 GAME LOCKED IN</h3>
+    <div class="overlay-result" id="ovLoc"></div>
+    <div class="overlay-result" id="ovMode"></div>
+    <div class="overlay-result" id="ovExtra"></div>
+    <div class="overlay-result" id="ovExtra2" style="display:none"></div>
+    <div class="overlay-result" id="ovMix" style="display:none"></div>
+    <div id="goldenBox" class="pick-row" style="display:none">
+      <small>GOLDEN TICKET — choose location & mode</small>
+      <select id="goldenLoc"></select>
+      <select id="goldenMode"></select>
+    </div>
+    <label class="toggle-row">
+      <span>Pop ups on</span>
+      <input type="checkbox" id="popupToggle" checked>
+    </label>
+    <div class="intensity-box" id="intensityBox">
+      <div class="intensity-row"><span>😮‍💨</span><span>😬</span><span>😰</span></div>
+      <input type="range" id="intensitySlider" min="0" max="2" step="1" value="1">
+      <label class="intensity-rand"><input type="checkbox" id="intensityRandom"> Random intensity</label>
+    </div>
+    <div class="share-actions">
+      <button class="action primary" id="startGameBtn">START GAME</button>
+      <button class="action" id="closeOverlay">BACK</button>
+    </div>
+  </div>
+</div>
+<canvas id="shareCanvas" width="1080" height="1350" style="display:none"></canvas>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Data ──────────────────────────────────────────────
+  // short = text shown on the wheel (fits better)
+  // name  = full name shown in results / history
+  const DATA = {
+    location: [
+      { name: "Big Bush", short: "Big Bush", rarity: "Common" },
+      { name: "Bins", short: "Bins", rarity: "Uncommon" },
+      { name: "Garage", short: "Garage", rarity: "Rare" },
+      { name: "Small Bush", short: "Small Bush", rarity: "Legendary" },
+      { name: "Corner of House", short: "Corner", rarity: "Mythical" }
+    ],
+    mode: [
+      { name: "Rush Hour", short: "Rush Hour", rarity: "Rare" },
+      { name: "Normal", short: "Normal", rarity: "Common" },
+      { name: "Quiet On The Creek", short: "Quiet Creek", rarity: "Rare" },
+      { name: "Silly Sounds", short: "Silly Sounds", rarity: "Uncommon" },
+      { name: "Giggle Roulette", short: "Giggle", rarity: "Common" },
+      { name: "Haunted House", short: "Haunted", rarity: "Uncommon" },
+      { name: "Seeing The Lights", short: "Lights", rarity: "Uncommon" },
+      { name: "Ghost Protocol", short: "Ghost", rarity: "Rare" },
+      { name: "Diddy Decoy", short: "Diddy", rarity: "Rare" },
+      { name: "Early Bird", short: "Early Bird", rarity: "Rare" },
+      { name: "DEATH MODE", short: "DEATH", rarity: "Legendary" },
+      { name: "Light House", short: "Lighthouse", rarity: "Rare" },
+      { name: "Peekaboo", short: "Peekaboo", rarity: "Uncommon" },
+      { name: "Chameleon", short: "Chameleon", rarity: "Common" },
+      { name: "Battle Mode", short: "Battle", rarity: "Uncommon" },
+      { name: "King Of The Castle", short: "King", rarity: "Rare" },
+      { name: "Jack In The Box", short: "Jack Box", rarity: "Rare" },
+      { name: "SUICIDE MISSION", short: "SUICIDE", rarity: "Mythical" },
+      { name: "Builder Man", short: "Builder", rarity: "Rare" },
+      { name: "Mr Mute", short: "Mr Mute", rarity: "" },
+      { name: "MIXEROO", short: "MIXEROO", rarity: "Legendary" },
+      { name: "Rush Minute", short: "Rush Min", rarity: "Uncommon" },
+      { name: "Redo", short: "Redo", rarity: "Common" }
+    ],
+    extra: [
+      { name: "NO EXTRAS", short: "NO EXTRAS", rarity: "" },
+      { name: "SOMETHING STUPID ON STEPS", short: "STUPID STEPS", rarity: "" },
+      { name: "PHONES OFF SILENT", short: "PHONES OFF", rarity: "" },
+      { name: "RECORD DASHER", short: "RECORD", rarity: "" },
+      { name: "SOMETHING STUPID IN YARD", short: "STUPID YARD", rarity: "" },
+      { name: "FLASHLIGHT ON", short: "FLASHLIGHT", rarity: "" },
+      { name: "BLACKOUT", short: "BLACKOUT", rarity: "" },
+      { name: "LOCATION RE SPIN", short: "LOC RESPIN", rarity: "" },
+      { name: "GAME MODE RESPIN", short: "MODE RESPIN", rarity: "" },
+      { name: "MUTE", short: "MUTE", rarity: "" },
+      { name: "NO SHIRTS", short: "NO SHIRTS", rarity: "" },
+      { name: "GOLDEN TICKET", short: "GOLD TICKET", rarity: "" },
+      { name: "BLINDFOLD", short: "BLINDFOLD", rarity: "" },
+      { name: "DOUBLE DRAW", short: "DOUBLE", rarity: "" },
+      { name: "MUTED", short: "MUTED", rarity: "" },
+      { name: "OUT DOG", short: "OUT DOG", rarity: "" }
+    ]
+  };
+
+  const COLORS_CLASSIC = ["#d41818", "#0e0e0e", "#7a1010", "#1a1a1a"];
+  const COLORS_HALLOWEEN = ["#ff6b00", "#1a0a12", "#9b59b6", "#0e0e0e"];
+  let COLORS = COLORS_CLASSIC;
+
+  const state = {
+    location: null, mode: null, extra: null,
+    rot: { location: 0, mode: 0, extra: 0 },
+    spinning: false
+  };
+
+  let games = [];
+  try { games = JSON.parse(localStorage.getItem("ddr_games_v2") || "[]"); } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+
+  async function askNotifyPermission() {
+    if (!("Notification" in window)) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    try {
+      const p = await Notification.requestPermission();
+      return p === "granted";
+    } catch (e) { return false; }
+  }
+
+  async function notifyPopup(text) {
+    const title = "POP UP 🚨";
+    const body = text;
+    try {
+      if (navigator.serviceWorker) {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg.showNotification) {
+          await reg.showNotification(title, {
+            body,
+            tag: "ddr-popup",
+            renotify: true,
+            silent: false
+          });
+          return;
+        }
+      }
+    } catch (e) {}
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
+    } catch (e) {}
+  }
+  const rarityClass = r => (r ? r.toLowerCase() : "");
+
+  // ── Build wheels with radial labels ───────────────────
+  function buildWheel(type) {
+    const items = DATA[type];
+    const n = items.length;
+    const wheel = $(type + "Wheel");
+    wheel.innerHTML = "";
+
+    // Conic gradient segments only — no text on the wheel
+    const pal = COLORS;
+    const cols = [];
+    for (let i = 0; i < n; i++) {
+      const pickCol = pal.find(c => c !== cols[i - 1] && (i < n - 1 || c !== cols[0])) || pal[i % pal.length];
+      cols.push(pickCol);
+    }
+    const stops = [];
+    for (let i = 0; i < n; i++) {
+      const start = (i / n) * 100;
+      const end = ((i + 1) / n) * 100;
+      stops.push(`${cols[i]} ${start}% ${end}%`);
+    }
+    wheel.style.background = `conic-gradient(${stops.join(",")})`;
+  }
+
+  // ── Web Audio ─────────────────────────────────────────
+  let audioCtx = null;
+
+  function getCtx() {
+    if (!audioCtx) {
+      const C = window.AudioContext || window.webkitAudioContext;
+      if (C) audioCtx = new C();
+    }
+    return audioCtx;
+  }
+
+  function sound(type) {
+    try {
+      const c = getCtx();
+      if (!c) return;
+      if (c.state === "suspended") c.resume();
+      const now = c.currentTime;
+
+      if (type === "drum") {
+        for (let i = 0; i < 30; i++) {
+          const o = c.createOscillator();
+          const g = c.createGain();
+          o.type = "triangle";
+          o.frequency.value = 52 + i * 3.2;
+          g.gain.setValueAtTime(0.038, now + i * 0.052);
+          g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.052 + 0.048);
+          o.connect(g); g.connect(c.destination);
+          o.start(now + i * 0.052);
+          o.stop(now + i * 0.052 + 0.055);
+        }
+      } else if (type === "reveal") {
+        const o = c.createOscillator();
+        const g = c.createGain();
+        o.type = "sine";
+        o.frequency.setValueAtTime(480, now);
+        o.frequency.exponentialRampToValueAtTime(920, now + 0.14);
+        g.gain.setValueAtTime(0.08, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        o.connect(g); g.connect(c.destination);
+        o.start(now); o.stop(now + 0.42);
+      } else if (type === "lock") {
+        [523, 659, 784].forEach((f, i) => {
+          const o = c.createOscillator();
+          const g = c.createGain();
+          o.type = "square";
+          o.frequency.value = f;
+          g.gain.setValueAtTime(0.045, now + i * 0.1);
+          g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.22);
+          o.connect(g); g.connect(c.destination);
+          o.start(now + i * 0.1); o.stop(now + i * 0.1 + 0.28);
+        });
+      } else if (type === "rare") {
+        [880, 1100, 1320, 1760].forEach((f, i) => {
+          const o = c.createOscillator();
+          const g = c.createGain();
+          o.type = "sine";
+          o.frequency.value = f;
+          g.gain.setValueAtTime(0.055, now + i * 0.07);
+          g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.32);
+          o.connect(g); g.connect(c.destination);
+          o.start(now + i * 0.07); o.stop(now + i * 0.07 + 0.36);
+        });
+      }
+    } catch (e) {}
+  }
+
+  
+
+  // ── Confetti ──────────────────────────────────────────
+  function confettiBurst(isSpecial) {
+    const canvas = $("confetti");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const particles = [];
+    const colors = isSpecial
+      ? ["#f59e0b", "#a855f7", "#ff2a2a", "#fff", "#3b82f6"]
+      : ["#e11919", "#ff5555", "#fff", "#ffaaaa"];
+    for (let i = 0; i < (isSpecial ? 70 : 35); i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 180,
+        y: canvas.height / 2 - 40,
+        vx: (Math.random() - 0.5) * 13,
+        vy: (Math.random() - 0.5) * 11 - 5,
+        size: Math.random() * 6 + 3,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1,
+        rot: Math.random() * 360,
+        rotV: (Math.random() - 0.5) * 9
+      });
+    }
+    let frame = 0;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      particles.forEach(p => {
+        if (p.life <= 0) return;
+        alive = true;
+        p.x += p.vx; p.y += p.vy; p.vy += 0.22; p.life -= 0.013; p.rot += p.rotV;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.55);
+        ctx.restore();
+      });
+      frame++;
+      if (alive && frame < 110) requestAnimationFrame(draw);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    draw();
+  }
+
+  // ── Spin ──────────────────────────────────────────────
+  const RARITY_WEIGHT = {
+    Common: 10,
+    Uncommon: 6,
+    Rare: 3,
+    Legendary: 2,
+    Mythical: 1
+  };
+
+  function weightOf(item) {
+    if (!item || !item.rarity) return 8;
+    return RARITY_WEIGHT[item.rarity] || 8;
+  }
+
+  function weightedIndex(arr) {
+    const weights = arr.map(weightOf);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < arr.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return i;
+    }
+    return arr.length - 1;
+  }
+
+  function pick(type) {
+    return new Promise(resolve => {
+      const arr = DATA[type];
+      const idx = weightedIndex(arr);
+      const n = arr.length;
+      const step = 360 / n;
+
+      // Align chosen slice center under the top pointer
+      const targetAngle = 360 - (idx * step + step / 2);
+      const currentMod = state.rot[type] % 360;
+      const delta = (targetAngle - currentMod + 360) % 360;
+      state.rot[type] += 1980 + delta;
+
+      $(type + "Wheel").style.transform = `rotate(${state.rot[type]}deg)`;
+
+      const item = arr[idx];
+      const resultEl = $(type + "Result");
+
+      setTimeout(() => {
+        let html = `<span>${item.name}</span>`;
+        if (item.rarity) {
+          html += `<span class="rarity ${rarityClass(item.rarity)}">${item.rarity}</span>`;
+        }
+        resultEl.innerHTML = html;
+        resultEl.classList.add("highlight");
+        setTimeout(() => resultEl.classList.remove("highlight"), 650);
+
+        state[type] = item;
+        sound("reveal");
+        if (["Legendary", "Mythical"].includes(item.rarity)) {
+          sound("rare");
+          confettiBurst(true);
+        }
+        resolve(item);
+      }, 4400);
+    });
+  }
+
+  function allSpun() {
+    return state.location && state.mode && state.extra;
+  }
+
+  function findByName(type, name) {
+    return DATA[type].find(x => x.name === name) || null;
+  }
+
+  function randomItem(type, excludeNames) {
+    const pool = DATA[type].filter(x => !(excludeNames || []).includes(x.name));
+    return pool[weightedIndex(pool)];
+  }
+
+  function extraNames() {
+    const list = [];
+    if (state.extra) list.push(state.extra.name);
+    if (state.extra2) list.push(state.extra2.name);
+    return list;
+  }
+
+  function hasExtra(name) {
+    return extraNames().includes(name);
+  }
+
+  function applySpecials() {
+    state.extra2 = null;
+    state.mixModes = [];
+    state.golden = false;
+
+    // Redo copies last finished game
+    if (state.mode && state.mode.name === "Redo") {
+      const prev = games[0];
+      if (prev && prev.location && prev.mode && prev.extra) {
+        state.location = prev.location;
+        state.mode = prev.mode;
+        state.extra = prev.extra;
+        state.extra2 = prev.extra2 || null;
+        state.mixModes = prev.mixModes || [];
+        toast("REDO — last game loaded");
+      } else {
+        toast("No previous game to redo");
+      }
+    }
+
+    // DOUBLE DRAW — second extra
+    if (hasExtra("DOUBLE DRAW") && !state.extra2) {
+      state.extra2 = randomItem("extra", extraNames().concat(["DOUBLE DRAW", "NO EXTRAS"]));
+    }
+
+    // Respins
+    if (hasExtra("LOCATION RE SPIN")) {
+      state.location = randomItem("location", [state.location && state.location.name]);
+    }
+    if (hasExtra("GAME MODE RESPIN")) {
+      state.mode = randomItem("mode", [state.mode && state.mode.name, "Redo"]);
+    }
+
+    // MIXEROO — two extra modes
+    if (state.mode && state.mode.name === "MIXEROO") {
+      const a = randomItem("mode", ["MIXEROO", "Redo"]);
+      const b = randomItem("mode", ["MIXEROO", "Redo", a.name]);
+      state.mixModes = [a, b];
+    }
+
+    // Forced locations from mode (and mix modes)
+    const modes = [state.mode].concat(state.mixModes || []).filter(Boolean);
+    if (modes.some(m => m.name === "Chameleon")) {
+      state.location = findByName("location", "Garage") || state.location;
+    }
+    if (modes.some(m => m.name === "Peekaboo")) {
+      state.location = findByName("location", "Corner of House") || state.location;
+    }
+
+    // Golden ticket — player chooses
+    state.golden = hasExtra("GOLDEN TICKET");
+  }
+
+  function fillLockIn() {
+    $("status").innerHTML =
+      `<strong>GAME LOCKED IN.</strong><br>${state.location.name} · ${state.mode.name} · ${extraNames().join(" + ")}`;
+    $("ovLoc").innerHTML = `<b>${state.location.name}</b><small>LOCATION ${state.location.rarity ? "· " + state.location.rarity : ""}</small>`;
+    $("ovMode").innerHTML = `<b>${state.mode.name}</b><small>GAME MODE ${state.mode.rarity ? "· " + state.mode.rarity : ""}</small>`;
+    $("ovExtra").innerHTML = `<b>${extraNames().join(" + ")}</b><small>EXTRAS</small>`;
+    const mix = $("ovMix");
+    if (state.mixModes && state.mixModes.length) {
+      mix.style.display = "flex";
+      mix.innerHTML = `<b>${state.mixModes.map(m => m.name).join(" + ")}</b><small>MIXEROO MODES</small>`;
+    } else {
+      mix.style.display = "none";
+    }
+    const box = $("goldenBox");
+    if (state.golden) {
+      box.style.display = "block";
+      const locSel = $("goldenLoc");
+      const modeSel = $("goldenMode");
+      locSel.innerHTML = DATA.location.map(l => `<option ${l.name===state.location.name?"selected":""}>${l.name}</option>`).join("");
+      modeSel.innerHTML = DATA.mode.filter(m => m.name !== "Redo").map(m => `<option ${m.name===state.mode.name?"selected":""}>${m.name}</option>`).join("");
+    } else {
+      box.style.display = "none";
+    }
+  }
+
+  function saveGame() {
+    if (!allSpun()) return;
+    applySpecials();
+    fillLockIn();
+    $("overlay").classList.add("show");
+    sound("lock");
+    confettiBurst(
+      ["Legendary", "Mythical"].includes(state.location.rarity) ||
+      ["Legendary", "Mythical"].includes(state.mode.rarity)
+    );
+  }
+
+  // ── Live game + popups + stopwatch ────────────────────
+  const POPUPS = [
+    "CLAP ONCE",
+    "DO A PUSH UP",
+    "FREEZE FOR 5 SECONDS",
+    "YELL OUT A COLOUR",
+    "YELL OUT A SWEAR WORD",
+    "YELL OUT AN ANIMAL",
+    "MAKE A NOISE",
+    "TAKE A SELFIE"
+  ];
+
+  let liveSession = null;
+  let tickTimer = null;
+  let popupTimers = [];
+
+  function fmtTime(ms) {
+    ms = Math.max(0, ms|0);
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const mm = String(m).padStart(2, "0");
+    const ss = String(sec).padStart(2, "0");
+    return h > 0 ? (String(h).padStart(2, "0") + ":" + mm + ":" + ss) : (mm + ":" + ss);
+  }
+
+  function elapsedMs() {
+    if (!liveSession) return 0;
+    const end = liveSession.endAt || Date.now();
+    return end - liveSession.startAt;
+  }
+
+  function persistSession() {
+    try { localStorage.setItem("ddr_live_v1", JSON.stringify(liveSession)); } catch (e) {}
+  }
+
+  function loadSession() {
+    try { return JSON.parse(localStorage.getItem("ddr_live_v1") || "null"); } catch (e) { return null; }
+  }
+
+  function clearSession() {
+    liveSession = null;
+    try { localStorage.removeItem("ddr_live_v1"); } catch (e) {}
+    popupTimers.forEach(clearTimeout);
+    popupTimers = [];
+    if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+  }
+
+  function updateStopwatch() {
+    if ($("stopwatch")) $("stopwatch").textContent = fmtTime(elapsedMs());
+  }
+
+
+  function writeRecap() {
+    const s = state.lastRecapSess;
+    if (!s || !$("recapText")) return;
+    const extra = [s.extra && s.extra.name, s.extra2 && s.extra2.name].filter(Boolean).join(" + ");
+    const mix = (s.mixModes || []).map(m => m.name).join(" + ");
+    const end = state.outcome ? state.outcome.toLowerCase() : "survived";
+    let line = `${s.durationStr} in ${s.location.name}, ${s.mode.name}`;
+    if (mix) line += ` (${mix})`;
+    line += `, ${extra || "NO EXTRAS"}, ${s.pops} pop-up${s.pops===1?"":"s"}, ${end}.`;
+    $("recapText").textContent = line;
+  }
+
+  function isDangerMode(sess) {
+    const names = [sess && sess.mode && sess.mode.name].concat(((sess && sess.mixModes) || []).map(m => m.name));
+    return names.includes("DEATH MODE") || names.includes("SUICIDE MISSION");
+  }
+
+  function extraLabel(sess) {
+    const a = sess.extra && sess.extra.name;
+    const b = sess.extra2 && sess.extra2.name;
+    return [a, b].filter(Boolean).join(" + ");
+  }
+
+  function fillLiveStats() {
+    if (!liveSession) return;
+    $("liveLoc").textContent = liveSession.location.name;
+    $("liveMode").textContent = liveSession.mode.name;
+    $("liveExtra").textContent = extraLabel(liveSession);
+    const mixStat = $("liveMixStat");
+    if (liveSession.mixModes && liveSession.mixModes.length) {
+      mixStat.style.display = "block";
+      $("liveMix").textContent = liveSession.mixModes.map(m => m.name).join(" + ");
+    } else if (mixStat) mixStat.style.display = "none";
+    $("stopwatch").classList.toggle("danger", isDangerMode(liveSession));
+    updateStopwatch();
+  }
+
+  function buzz(pattern) {
+    try {
+      if (navigator.vibrate) navigator.vibrate(pattern || [180, 70, 180]);
+    } catch (e) {}
+  }
+
+  function showPopup(text) {
+    if (!liveSession || liveSession.ended) return;
+    $("popupText").textContent = text;
+    $("popup").classList.add("show");
+    sound("rare");
+    notifyPopup(text);
+    buzz([200, 80, 200, 80, 280]);
+  }
+
+  function schedulePopups(fromElapsed) {
+    popupTimers.forEach(clearTimeout);
+    popupTimers = [];
+    if (!liveSession || !liveSession.popupsOn) return;
+    const nowOff = fromElapsed || 0;
+    let shownMissed = false;
+    (liveSession.schedule || []).forEach((item, idx) => {
+      if (liveSession.shown && liveSession.shown.includes(idx)) return;
+      const wait = item.at - nowOff;
+      if (wait <= 0) {
+        if (shownMissed) return;
+        shownMissed = true;
+        liveSession.shown = liveSession.shown || [];
+        liveSession.shown.push(idx);
+        persistSession();
+        showPopup(item.text);
+        return;
+      }
+      const t = setTimeout(() => {
+        if (liveSession && !liveSession.ended) {
+          liveSession.shown = liveSession.shown || [];
+          if (!liveSession.shown.includes(idx)) liveSession.shown.push(idx);
+          persistSession();
+          showPopup(item.text);
+        }
+      }, wait);
+      popupTimers.push(t);
+    });
+  }
+
+  function getIntensity() {
+    if ($("intensityRandom") && $("intensityRandom").checked) {
+      return Math.floor(Math.random() * 3);
+    }
+    const sl = $("intensitySlider");
+    return sl ? Number(sl.value) : 1;
+  }
+
+  function buildSchedule() {
+    const lvl = getIntensity();
+    // 0 chill, 1 mid, 2 chaos
+    const spec = [
+      { minN: 0, maxN: 3, start: 45000, window: 25 * 60 * 1000 },
+      { minN: 2, maxN: 6, start: 20000, window: 18 * 60 * 1000 },
+      { minN: 5, maxN: 8, start: 8000, window: 12 * 60 * 1000 }
+    ][lvl] || { minN: 2, maxN: 6, start: 20000, window: 18 * 60 * 1000 };
+    const n = spec.minN + Math.floor(Math.random() * (spec.maxN - spec.minN + 1));
+    const times = [];
+    for (let i = 0; i < n; i++) {
+      times.push(spec.start + Math.floor(Math.random() * Math.max(1000, spec.window - spec.start)));
+    }
+    times.sort((a, b) => a - b);
+    return times.map(at => ({
+      at,
+      text: POPUPS[Math.floor(Math.random() * POPUPS.length)]
+    }));
+  }
+
+  function startLiveGame() {
+    if (!allSpun()) return;
+    const popupsOn = !!( $("popupToggle") && $("popupToggle").checked );
+    if (state.golden && $("goldenLoc") && $("goldenMode")) {
+      state.location = findByName("location", $("goldenLoc").value) || state.location;
+      state.mode = findByName("mode", $("goldenMode").value) || state.mode;
+      if (state.mode.name === "MIXEROO" && (!state.mixModes || !state.mixModes.length)) {
+        const a = randomItem("mode", ["MIXEROO", "Redo"]);
+        const b = randomItem("mode", ["MIXEROO", "Redo", a.name]);
+        state.mixModes = [a, b];
+      }
+    }
+    liveSession = {
+      startAt: Date.now(),
+      endAt: null,
+      ended: false,
+      popupsOn,
+      intensity: popupsOn ? getIntensity() : null,
+      schedule: popupsOn ? buildSchedule() : [],
+      shown: [],
+      location: state.location,
+      mode: state.mode,
+      extra: state.extra,
+      extra2: state.extra2 || null,
+      mixModes: state.mixModes || []
+    };
+    persistSession();
+    $("overlay").classList.remove("show");
+    $("liveGame").classList.add("show");
+    fillLiveStats();
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(() => {
+      updateStopwatch();
+      persistSession();
+    }, 250);
+    schedulePopups(0);
+    if (popupsOn) askNotifyPermission();
+    toast(popupsOn ? "Game started" : "Game started · pop ups off");
+  }
+
+  function resumeLiveGame(sess) {
+    if (!sess || sess.ended) return false;
+    liveSession = sess;
+    state.location = sess.location;
+    state.mode = sess.mode;
+    state.extra = sess.extra;
+    $("intro").classList.add("hide");
+    $("liveGame").classList.add("show");
+    fillLiveStats();
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(() => {
+      updateStopwatch();
+      persistSession();
+    }, 250);
+    schedulePopups(Date.now() - sess.startAt);
+    return true;
+  }
+
+  function endLiveGame() {
+    if (!liveSession) return;
+    liveSession.ended = true;
+    liveSession.endAt = Date.now();
+    const duration = elapsedMs();
+    const durationStr = fmtTime(duration);
+    state.durationStr = durationStr;
+
+    const g = {
+      date: new Date().toISOString(),
+      location: liveSession.location,
+      mode: liveSession.mode,
+      extra: liveSession.extra,
+      duration: duration,
+      durationStr: durationStr
+    };
+    games.unshift(g);
+    games = games.slice(0, 80);
+    try { localStorage.setItem("ddr_games_v2", JSON.stringify(games)); } catch (e) {}
+
+    state.outcome = state.outcome || null;
+    $("sumTime").textContent = durationStr;
+    $("sumLoc").textContent = g.location.name;
+    $("sumMode").textContent = g.mode.name;
+    $("sumExtra").textContent = extraLabel(liveSession);
+    if ($("sumMixStat")) {
+      if (liveSession.mixModes && liveSession.mixModes.length) {
+        $("sumMixStat").style.display = "block";
+        $("sumMix").textContent = liveSession.mixModes.map(m => m.name).join(" + ");
+      } else $("sumMixStat").style.display = "none";
+    }
+    $("sumTime").classList.toggle("danger", isDangerMode(liveSession));
+    const pops = (liveSession.shown && liveSession.shown.length) || 0;
+    state.popupCount = pops;
+    state.lastRecapSess = {
+      durationStr, pops,
+      location: liveSession.location,
+      mode: liveSession.mode,
+      extra: liveSession.extra,
+      extra2: liveSession.extra2,
+      mixModes: liveSession.mixModes
+    };
+    g.extra2 = liveSession.extra2 || null;
+    g.mixModes = liveSession.mixModes || [];
+    g.popupCount = pops;
+    writeRecap();
+    document.querySelectorAll("#survivedBtn,#bustedBtn").forEach(b => b.classList.remove("picked"));
+    if ($("shareCaption")) $("shareCaption").value = "";
+    sharePhotoImg = null;
+    if ($("sharePhoto")) $("sharePhoto").value = "";
+    if ($("photoPickLabel")) $("photoPickLabel").classList.remove("has-photo");
+    if ($("photoPickText")) $("photoPickText").textContent = "📷 ADD PHOTO BACKGROUND";
+
+    $("liveGame").classList.remove("show");
+    $("popup").classList.remove("show");
+    $("summary").classList.add("show");
+    clearSession();
+    renderHistory();
+    sound("lock");
+    toast("Game over");
+  }
+
+  // ── History ───────────────────────────────────────────
+  function renderHistory() {
+    const box = $("historyList");
+    if (!games.length) {
+      box.innerHTML = `<div class="empty">No games yet.<br>Spin the wheels and make history.</div>`;
+      return;
+    }
+    box.innerHTML = games.map((g, i) => {
+      const d = new Date(g.date);
+      const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "2-digit" });
+      return `
+        <div class="history-card">
+          <div class="history-num">#${games.length - i}<span>${dateStr}</span></div>
+          <div class="history-details">
+            <div><b>${g.location.name}</b> <span class="tag">${g.location.rarity || ""}</span></div>
+            <div><b>${g.mode.name}</b> <span class="tag">${g.mode.rarity || ""}</span></div>
+            <div><b>${g.extra.name}${g.extra2 ? " + " + g.extra2.name : ""}</b></div>
+            ${g.durationStr ? `<div class="tag">${g.durationStr}</div>` : ""}
+            ${g.outcome ? `<div class="tag">${g.outcome}</div>` : ""}
+          </div>
+          <button class="history-del" data-del="${i}" title="Delete">×</button>
+        </div>`;
+    }).join("");
+
+    box.querySelectorAll("[data-del]").forEach(btn => {
+      btn.onclick = () => {
+        games.splice(Number(btn.dataset.del), 1);
+        localStorage.setItem("ddr_games_v2", JSON.stringify(games));
+        renderHistory();
+        toast("Game removed");
+      };
+    });
+  }
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1700);
+  }
+
+  // ── Events ────────────────────────────────────────────
+  document.querySelectorAll(".spin").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (state.spinning) return;
+      state.spinning = true;
+      btn.disabled = true;
+      sound("drum");
+      await pick(btn.dataset.type);
+      btn.disabled = false;
+      state.spinning = false;
+      if (allSpun()) saveGame();
+    });
+  });
+
+  $("spinAll").addEventListener("click", async () => {
+    if (state.spinning) return;
+    state.spinning = true;
+    $("spinAll").disabled = true;
+    document.querySelectorAll(".spin").forEach(b => (b.disabled = true));
+
+    sound("drum");
+    await pick("location");
+    await new Promise(r => setTimeout(r, 280));
+    sound("drum");
+    await pick("mode");
+    await new Promise(r => setTimeout(r, 280));
+    sound("drum");
+    await pick("extra");
+
+    saveGame();
+    $("spinAll").disabled = false;
+    document.querySelectorAll(".spin").forEach(b => (b.disabled = false));
+    state.spinning = false;
+  });
+
+  $("newGame").addEventListener("click", () => {
+    ["location", "mode", "extra"].forEach(t => {
+      state[t] = null;
+      $(t + "Result").textContent = "READY";
+      $(t + "Result").classList.remove("highlight");
+    });
+    $("status").textContent = "New game ready. Spin all three wheels.";
+    toast("Fresh game");
+  });
+
+  $("playBtn").addEventListener("click", () => {
+    $("play").style.display = "block";
+    $("history").style.display = "none";
+    $("playBtn").classList.add("active");
+    $("historyBtn").classList.remove("active");
+  });
+
+  $("historyBtn").addEventListener("click", () => {
+    $("play").style.display = "none";
+    $("history").style.display = "block";
+    $("historyBtn").classList.add("active");
+    $("playBtn").classList.remove("active");
+    renderHistory();
+  });
+
+  $("clearHistory").addEventListener("click", () => {
+    if (confirm("Clear all previous games?")) {
+      games = [];
+      localStorage.removeItem("ddr_games_v2");
+      renderHistory();
+      toast("History cleared");
+    }
+  });
+
+  $("closeOverlay").addEventListener("click", () => $("overlay").classList.remove("show"));
+  if ($("startGameBtn")) $("startGameBtn").addEventListener("click", startLiveGame);
+  if ($("popupToggle")) {
+    const syncInt = () => {
+      const box = $("intensityBox");
+      if (box) box.classList.toggle("show", $("popupToggle").checked);
+    };
+    $("popupToggle").addEventListener("change", syncInt);
+    syncInt();
+  }
+  function setOutcome(val) {
+    state.outcome = val;
+    $("survivedBtn").classList.toggle("picked", val === "SURVIVED");
+    $("bustedBtn").classList.toggle("picked", val === "GOT BUSTED");
+    if (games[0]) {
+      games[0].outcome = val;
+      try { localStorage.setItem("ddr_games_v2", JSON.stringify(games)); } catch (e) {}
+    }
+    writeRecap();
+  }
+  if ($("survivedBtn")) $("survivedBtn").addEventListener("click", () => setOutcome("SURVIVED"));
+  if ($("bustedBtn")) $("bustedBtn").addEventListener("click", () => setOutcome("GOT BUSTED"));
+  if ($("endGameBtn")) $("endGameBtn").addEventListener("click", endLiveGame);
+  if ($("popupDone")) $("popupDone").addEventListener("click", () => $("popup").classList.remove("show"));
+  if ($("summaryDone")) $("summaryDone").addEventListener("click", () => {
+    $("summary").classList.remove("show");
+    toast("Ready for another spin");
+  });
+  if ($("introPlay")) $("introPlay").addEventListener("click", () => {
+    $("intro").classList.add("hide");
+    const sess = loadSession();
+    if (sess && !sess.ended) resumeLiveGame(sess);
+  });
+  if ($("shareBtn")) $("shareBtn").addEventListener("click", shareCard);
+  if ($("sharePhoto")) {
+    $("sharePhoto").addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      const label = $("photoPickLabel");
+      const text = $("photoPickText");
+      if (!file) {
+        sharePhotoImg = null;
+        sharePhotoFile = null;
+        if (label) label.classList.remove("has-photo");
+        if (text) text.textContent = "📷 ADD PHOTO BACKGROUND";
+        return;
+      }
+      sharePhotoFile = file;
+      try {
+        await loadSharePhoto(file);
+        if (label) label.classList.add("has-photo");
+        if (text) text.textContent = "✓ PHOTO ADDED — TAP TO CHANGE";
+        toast("Photo ready");
+      } catch (err) {
+        toast("Could not load photo");
+        sharePhotoImg = null;
+      }
+    });
+  }
+
+  
+  // ── Theme + Ambient ─────────────────────────────────
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    COLORS = theme === "halloween" ? COLORS_HALLOWEEN : COLORS_CLASSIC;
+    ["location", "mode", "extra"].forEach(buildWheel);
+    const btn = $("themeBtn");
+    if (btn) btn.textContent = theme === "halloween" ? "🎃" : "🔴";
+    try { localStorage.setItem("ddr_theme", theme); } catch (e) {}
+  }
+
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute("data-theme") || "classic";
+    applyTheme(cur === "halloween" ? "classic" : "halloween");
+    toast(cur === "halloween" ? "Classic mode" : "Halloween mode 🎃");
+  }
+
+
+
+  
+  // ── Share Card ────────────────────────────────────────
+  let sharePhotoImg = null;
+  let sharePhotoFile = null;
+
+  function loadSharePhoto(file) {
+    return new Promise((resolve, reject) => {
+      if (!file) { sharePhotoImg = null; resolve(null); return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        sharePhotoImg = img;
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  function drawShareCard(caption) {
+    const canvas = $("shareCanvas");
+    const ctx = canvas.getContext("2d");
+    const W = 1080, H = 1350;
+    canvas.width = W;
+    canvas.height = H;
+
+    const theme = document.documentElement.getAttribute("data-theme") || "classic";
+    const isHall = theme === "halloween";
+    const accent = isHall ? "#ff6b00" : "#e11919";
+    const accent2 = isHall ? "#c39bd3" : "#ff6666";
+    const text = "#ffffff";
+    const muted = "rgba(255,255,255,0.75)";
+
+    // ── Background: photo or solid ──
+    if (sharePhotoImg) {
+      // Cover-fit the photo
+      const iw = sharePhotoImg.naturalWidth || sharePhotoImg.width;
+      const ih = sharePhotoImg.naturalHeight || sharePhotoImg.height;
+      const scale = Math.max(W / iw, H / ih);
+      const dw = iw * scale, dh = ih * scale;
+      const dx = (W - dw) / 2, dy = (H - dh) / 2;
+      ctx.drawImage(sharePhotoImg, dx, dy, dw, dh);
+
+      // Dark scrim so text stays readable
+      const scrim = ctx.createLinearGradient(0, 0, 0, H);
+      scrim.addColorStop(0, "rgba(0,0,0,0.55)");
+      scrim.addColorStop(0.35, "rgba(0,0,0,0.35)");
+      scrim.addColorStop(0.65, "rgba(0,0,0,0.45)");
+      scrim.addColorStop(1, "rgba(0,0,0,0.75)");
+      ctx.fillStyle = scrim;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      const bg = isHall ? "#0a0608" : "#050505";
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+      const grad = ctx.createRadialGradient(W/2, 200, 50, W/2, 400, 700);
+      grad.addColorStop(0, isHall ? "rgba(255,107,0,0.18)" : "rgba(225,25,25,0.15)");
+      grad.addColorStop(1, "transparent");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Border
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(40, 40, W - 80, H - 80);
+    ctx.strokeStyle = isHall ? "rgba(155,89,182,0.5)" : "rgba(255,50,50,0.3)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(60, 60, W - 120, H - 120);
+
+    // Title
+    ctx.fillStyle = accent;
+    ctx.font = "800 28px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("THE FOOD DECISION GAME", W / 2, 130);
+
+    ctx.fillStyle = text;
+    ctx.font = "italic 900 64px system-ui, sans-serif";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 12;
+    ctx.fillText("DOORDASH ROULETTE", W / 2, 210);
+    ctx.shadowBlur = 0;
+
+    // Divider
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(180, 250);
+    ctx.lineTo(W - 180, 250);
+    ctx.stroke();
+
+    const g = {
+      location: state.location,
+      mode: state.mode,
+      extra: state.extra
+    };
+
+    function drawBlock(y, label, name, rarity) {
+      // Soft plate behind text for readability on photos
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      roundRect(ctx, 140, y - 36, W - 280, rarity ? 130 : 100, 18);
+      ctx.fill();
+
+      ctx.fillStyle = muted;
+      ctx.font = "800 22px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(label, W / 2, y);
+
+      ctx.fillStyle = text;
+      ctx.font = "900 46px system-ui, sans-serif";
+      ctx.shadowColor = "rgba(0,0,0,0.9)";
+      ctx.shadowBlur = 8;
+      ctx.fillText(name || "—", W / 2, y + 54);
+      ctx.shadowBlur = 0;
+
+      if (rarity) {
+        ctx.fillStyle = accent2;
+        ctx.font = "800 20px system-ui, sans-serif";
+        ctx.fillText(rarity.toUpperCase(), W / 2, y + 88);
+      }
+    }
+
+    drawBlock(340, "01  ·  LOCATION", g.location && g.location.name, g.location && g.location.rarity);
+    drawBlock(520, "02  ·  GAME MODE", g.mode && g.mode.name, g.mode && g.mode.rarity);
+    const extraTxt = extraNames().join(" + ") || (g.extra && g.extra.name) || "—";
+    drawBlock(700, "03  ·  EXTRAS", extraTxt, null);
+    if (state.outcome) {
+      ctx.fillStyle = state.outcome === "GOT BUSTED" ? "#ff6b6b" : "#86efac";
+      ctx.font = "900 36px system-ui, sans-serif";
+      ctx.fillText(state.outcome, W / 2, 840);
+    }
+
+    // Caption
+    if (caption && caption.trim()) {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      roundRect(ctx, 120, 860, W - 240, 140, 20);
+      ctx.fill();
+      ctx.fillStyle = text;
+      ctx.font = "600 32px system-ui, sans-serif";
+      wrapText(ctx, '"' + caption.trim() + '"', W / 2, 920, W - 300, 40);
+    }
+
+    // Footer
+    const dateStr = new Date().toLocaleDateString(undefined, {
+      month: "short", day: "numeric", year: "numeric"
+    });
+    ctx.fillStyle = muted;
+    ctx.font = "600 24px system-ui, sans-serif";
+    const timeBit = state.durationStr ? ("  ·  " + state.durationStr) : "";
+    const outBit = state.outcome ? ("  ·  " + state.outcome) : "";
+    ctx.fillText(dateStr + timeBit + outBit + (isHall ? "  ·  🎃 HALLOWEEN" : ""), W / 2, H - 100);
+
+    ctx.fillStyle = accent;
+    ctx.font = "800 20px system-ui, sans-serif";
+    ctx.fillText("NO BACKING OUT", W / 2, H - 60);
+
+    return canvas;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(" ");
+    let line = "";
+    let yy = y;
+    for (let n = 0; n < words.length; n++) {
+      const test = line + words[n] + " ";
+      if (ctx.measureText(test).width > maxWidth && n > 0) {
+        ctx.fillText(line.trim(), x, yy);
+        line = words[n] + " ";
+        yy += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line.trim(), x, yy);
+  }
+
+  async function shareCard() {
+    if (!state.location || !state.mode || !state.extra) {
+      toast("Spin all three first");
+      return;
+    }
+    const caption = ($("shareCaption") && $("shareCaption").value) || "";
+    const canvas = drawShareCard(caption);
+
+    const blob = await new Promise(res => canvas.toBlob(res, "image/png", 0.95));
+    const file = new File([blob], "doordash-roulette.png", { type: "image/png" });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: "DoorDash Roulette",
+          text: caption || "Locked in. No backing out."
+        });
+        toast("Shared 🔥");
+        return;
+      } catch (e) {
+        if (e.name === "AbortError") return;
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "doordash-roulette.png";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Card saved");
+  }
+
+  // ── Init ──────────────────────────────────────────────
+
+
+  buildWheel("location");
+  buildWheel("mode");
+  buildWheel("extra");
+  renderHistory();
+  if ($("introLogo") && $("logoImg")) $("introLogo").src = $("logoImg").src;
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      updateStopwatch();
+      if (liveSession && !liveSession.ended) schedulePopups(Date.now() - liveSession.startAt);
+    }
+  });
+  window.addEventListener("focus", () => {
+    updateStopwatch();
+    if (liveSession && !liveSession.ended) schedulePopups(Date.now() - liveSession.startAt);
+  });
+  const existing = loadSession();
+  if (existing && !existing.ended) {
+    // keep intro; resume after PLAY so they still see the splash if they want
+  }
+
+  $("themeBtn").addEventListener("click", toggleTheme);
+  try {
+    const saved = localStorage.getItem("ddr_theme");
+    if (saved === "halloween") applyTheme("halloween");
+    else applyTheme("classic");
+  } catch (e) { applyTheme("classic"); }
+
+})();
+</script>
+</body>
+</html>
